@@ -10,7 +10,8 @@ function App() {
       const data = await response.json();
       setResults(data.results || []);
     } catch (err) {
-      console.error("Error fetching results:", err);
+      console.error('Failed to fetch data:', err);
+      alert('Failed to fetch data. Please try again later.');
     }
   };
 
@@ -18,6 +19,7 @@ function App() {
     <div style={{ padding: 20 }}>
       <h1>Compare Prices</h1>
       <input
+        type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search product"
@@ -26,10 +28,16 @@ function App() {
 
       <div style={{ display: 'flex', flexWrap: 'wrap', marginTop: 20 }}>
         {results.map((item, index) => (
-          <div key={index} style={{
-            width: 250, padding: 10, margin: 10,
-            border: '1px solid #ccc', borderRadius: '8px'
-          }}>
+          <div
+            key={index}
+            style={{
+              width: 250,
+              padding: 10,
+              margin: 10,
+              border: '1px solid #ccc',
+              borderRadius: 8,
+            }}
+          >
             <img
               src={item.image}
               alt={item.title}
@@ -38,23 +46,21 @@ function App() {
             <h3>{item.title}</h3>
             <p>{item.price}</p>
             <p><strong>{item.site}</strong></p>
-
-            {/* ✅ This ensures external site navigation */}
-            <button
-              onClick={() => {
-                window.open(item.link, '_blank', 'noopener,noreferrer');
-              }}
+            <a
+              href={item.link}
+              target="_blank"
+              rel="noopener noreferrer"
               style={{
-                backgroundColor: '#007bff',
+                textDecoration: 'none',
                 color: 'white',
-                border: 'none',
+                background: '#007bff',
                 padding: '8px 12px',
-                cursor: 'pointer',
-                borderRadius: '4px'
+                borderRadius: 4,
+                display: 'inline-block',
               }}
             >
               View Product
-            </button>
+            </a>
           </div>
         ))}
       </div>
