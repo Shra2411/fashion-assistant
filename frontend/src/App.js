@@ -1,45 +1,60 @@
 import React, { useState } from 'react';
-import './App.css';
-import axios from 'axios';
 
 function App() {
-  const [prompt, setPrompt] = useState('');
-  const [products, setProducts] = useState([]);
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
 
   const handleSearch = async () => {
     try {
-      const response = await axios.post('http://localhost:5000/api/prompt', { prompt });
-      setProducts(response.data.products);
-    } catch (error) {
-      console.error('Error fetching data:', error);
+      const response = await fetch(`http://localhost:5000/search?query=${query}`);
+      const data = await response.json();
+      setResults(data.results || []);
+    } catch (err) {
+      console.error("Error fetching results:", err);
     }
   };
 
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial" }}>
-      <h1>Fashion Assistant</h1>
+    <div style={{ padding: 20 }}>
+      <h1>Compare Prices</h1>
       <input
-        type="text"
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
-        placeholder="e.g. black t-shirt, jeans"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search product"
       />
-      <button onClick={handleSearch} style={{ marginLeft: "10px" }}>Search</button>
+      <button onClick={handleSearch}>Search</button>
 
-      <div style={{ marginTop: "30px" }}>
-        {products.map((product, index) => (
+      <div style={{ display: 'flex', flexWrap: 'wrap', marginTop: 20 }}>
+        {results.map((item, index) => (
           <div key={index} style={{
-            border: "1px solid #ccc",
-            borderRadius: "10px",
-            padding: "15px",
-            marginBottom: "10px",
-            width: "300px"
+            width: 250, padding: 10, margin: 10,
+            border: '1px solid #ccc', borderRadius: '8px'
           }}>
-            <h3>{product.name}</h3>
-            <p><strong>Price:</strong> {product.price}</p>
-            <a href={product.link} target="_blank" rel="noopener noreferrer">
+            <img
+              src={item.image}
+              alt={item.title}
+              style={{ width: '100%', height: 200, objectFit: 'cover' }}
+            />
+            <h3>{item.title}</h3>
+            <p>{item.price}</p>
+            <p><strong>{item.site}</strong></p>
+
+            {/* ✅ This ensures external site navigation */}
+            <button
+              onClick={() => {
+                window.open(item.link, '_blank', 'noopener,noreferrer');
+              }}
+              style={{
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                padding: '8px 12px',
+                cursor: 'pointer',
+                borderRadius: '4px'
+              }}
+            >
               View Product
-            </a>
+            </button>
           </div>
         ))}
       </div>
