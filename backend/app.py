@@ -36,6 +36,8 @@ def scrape_amazon(query):
             price_text = price.text if price else "N/A"
             results.append({"title": title, "link": link, "image": image, "price": price_text, "site": "Amazon"})
         return results
+        print(item.prettify())
+
     except Exception as e:
         print("Amazon scraping error:", e)
         return []
@@ -139,13 +141,14 @@ def scrape_aliexpress(query):
 
 def scrape_ebay(query):
     try:
+        exchange_rate = get_exchange_rate()
         search_url = f"https://www.ebay.com/sch/i.html?_nkw={query.replace(' ', '+')}"
         r = requests.get(search_url, headers=headers)
-        r.raise_for_status()  # Raise an error for bad responses
+        r.raise_for_status()
         soup = BeautifulSoup(r.text, "html.parser")
         results = []
 
-        for item in soup.select('.s-item')[:5]:
+        for item in soup.select('.s-item')[2:7]:
             title_tag = item.select_one('.s-item__title')
             if not title_tag:
                 continue
@@ -156,11 +159,29 @@ def scrape_ebay(query):
             image = image_tag['src'] if image_tag else ""
             price_tag = item.select_one('.s-item__price')
             price_text = price_tag.text.strip() if price_tag else "N/A"
-            results.append({"title": title, "link": link, "image": image, "price": price_text, "site": "eBay"})
+
+            # Convert USD price to INR if price is valid
+            try:
+                usd_price = float(price_text.replace('$', '').replace(',', '').split()[0])
+                inr_price = round(usd_price * exchange_rate, 2)
+                price_text_inr = f"₹{inr_price}"
+            except:
+                price_text_inr = price_text  # fallback if price can't be converted
+
+            results.append({
+                "title": title,
+                "link": link,
+                "image": image,
+                "price": price_text_inr,
+                "site": "eBay"
+            })
+
         return results
+
     except Exception as e:
         print("eBay scraping error:", e)
         return []
+
 
 @app.route('/search', methods=['GET'])
 def search_products():
