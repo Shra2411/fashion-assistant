@@ -25,8 +25,9 @@ function App() {
   const suggestions = ['oversized tshirt', 'printed tshirt', 'Shoes', 'cargo pants for men'];
 
   const handleSearch = async (searchQuery) => {
-    const finalQuery = searchQuery || query;
-    if (!finalQuery.trim()) return;
+    const finalQuery = (searchQuery || query || '').toString();
+if (!finalQuery.trim()) return;
+
 
     setHasSearched(true);
     setLoading(true);
