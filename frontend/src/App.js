@@ -3,6 +3,7 @@ import {
   MagnifyingGlassIcon, HeartIcon, MoonIcon,
   SunIcon, XMarkIcon
 } from '@heroicons/react/24/solid';
+import Login from './Login';
 
 const Spinner = () => (
   <div className="flex justify-center items-center py-10">
@@ -10,7 +11,12 @@ const Spinner = () => (
   </div>
 );
 
-function App() {
+const App = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('user'));
+  const [userDetails, setUserDetails] = useState(() => {
+    const savedUser = localStorage.getItem('user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
@@ -103,6 +109,19 @@ function App() {
     }
   };
 
+  const handleLogin = (email, password) => {
+    const user = { email, password }; // Placeholder user data
+    setUserDetails(user);
+    setIsLoggedIn(true);
+    localStorage.setItem('user', JSON.stringify(user)); // Save user details to localStorage
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setUserDetails(null);
+    localStorage.removeItem('user'); // Clear user data from localStorage
+  };
+
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
   }, [theme]);
@@ -118,9 +137,23 @@ function App() {
           <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-emerald-100 dark:hover:bg-zinc-700 transition" title="Toggle Theme">
             {theme === 'dark' ? <SunIcon className="w-5 h-5 text-yellow-300" /> : <MoonIcon className="w-5 h-5 text-zinc-800" />}
           </button>
-          <button className="bg-emerald-500 px-4 py-2 rounded-full text-white hover:scale-105 transition-transform">Login</button>
+          {isLoggedIn ? (
+            <button onClick={handleLogout} className="bg-emerald-500 px-4 py-2 rounded-full text-white hover:scale-105 transition-transform">Logout</button>
+          ) : (
+            <button onClick={() => setIsLoggedIn(true)} className="bg-emerald-500 px-4 py-2 rounded-full text-white hover:scale-105 transition-transform">Login</button>
+          )}
         </div>
       </nav>
+
+      {/* Conditional rendering for login or main content */}
+      {isLoggedIn ? (
+        <div className="flex flex-col items-center justify-center flex-1 px-4 mt-10 text-center">
+          <h2 className="text-4xl font-extrabold tracking-tight mb-4">Welcome, {userDetails?.email}</h2>
+          {/* Main content goes here */}
+        </div>
+      ) : (
+        <Login onLogin={handleLogin} />
+      )}
 
       {!hasSearched && (
         <div className="flex flex-col items-center justify-center flex-1 px-4 mt-10 text-center">
@@ -154,90 +187,92 @@ function App() {
         </div>
       )}
 
+      
+
       {loading && <Spinner />}
 
       {results.length > 0 && (
         <div className="max-w-7xl mx-auto px-6 mt-8">
           <h2 className="text-2xl font-bold mb-4">Search Results for <span className="text-emerald-400">"{query.charAt(0).toUpperCase() + query.slice(1)}"</span></h2>
-          <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {results.map((item, index) => {
-              const isFavorited = favorites[index];
-              return (
-                <div key={index} className="bg-white dark:bg-zinc-800/80 backdrop-blur-md rounded-xl shadow-md overflow-hidden flex flex-col hover:shadow-lg transition-shadow border border-zinc-200 dark:border-zinc-700 relative">
-                  <button onClick={() => toggleFavorite(index, item)} className="absolute top-4 right-4 z-10 bg-zinc-900/70 hover:bg-zinc-800 p-1.5 rounded-full transition" title="Add to favorites">
-                    <HeartIcon className={`w-5 h-5 ${isFavorited ? 'text-rose-500' : 'text-zinc-400'} transition`} />
-                  </button>
-                  <a href={item.link} target="_blank" rel="noopener noreferrer" className="group relative">
-                    <img src={item.image} alt={item.title} className="h-56 w-full object-contain bg-white p-3 transition-transform group-hover:scale-105" />
-                  </a>
-                  <div className="p-4 flex flex-col flex-grow space-y-2">
-                    <h3 className="font-semibold text-sm line-clamp-2">{item.title}</h3>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-emerald-400 font-semibold">{item.price}</span>
-                      <span className="text-zinc-400">{item.site}</span>
+            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+               {results.map((item, index) => {
+                const isFavorited = favorites[index];
+                return (
+                  <div key={index} className="bg-white dark:bg-zinc-800/80 backdrop-blur-md rounded-xl shadow-md overflow-hidden flex flex-col hover:shadow-lg transition-shadow border border-zinc-200 dark:border-zinc-700 relative">
+                    <button onClick={() => toggleFavorite(index, item)} className="absolute top-4 right-4 z-10 bg-zinc-900/70 hover:bg-zinc-800 p-1.5 rounded-full transition" title="Add to favorites">
+                      <HeartIcon className={`w-5 h-5 ${isFavorited ? 'text-rose-500' : 'text-zinc-400'} transition`} />
+                    </button>
+                    <a href={item.link} target="_blank" rel="noopener noreferrer" className="group relative">
+                      <img src={item.image} alt={item.title} className="h-56 w-full object-contain bg-white p-3 transition-transform group-hover:scale-105" />
+                    </a>
+                    <div className="p-4 flex flex-col flex-grow space-y-2">
+                      <h3 className="font-semibold text-sm line-clamp-2">{item.title}</h3>
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-emerald-400 font-semibold">{item.price}</span>
+                        <span className="text-zinc-400">{item.site}</span>
+                      </div>
+                      <div className="flex gap-2 mt-2">
+                         <a href={item.link} target="_blank" rel="noopener noreferrer" className="flex-1 text-white bg-emerald-500 px-3 py-2 rounded-md text-xs text-center hover:bg-emerald-600 transition">View</a>
+                         <button onClick={() => handleTryOnClick(item)} className="flex-1 text-emerald-400 border border-emerald-500 px-3 py-2 rounded-md text-xs text-center hover:bg-emerald-900 transition">Try On</button>
+                      </div>
                     </div>
-                    <div className="flex gap-2 mt-2">
-                      <a href={item.link} target="_blank" rel="noopener noreferrer" className="flex-1 text-white bg-emerald-500 px-3 py-2 rounded-md text-xs text-center hover:bg-emerald-600 transition">View</a>
-                      <button onClick={() => handleTryOnClick(item)} className="flex-1 text-emerald-400 border border-emerald-500 px-3 py-2 rounded-md text-xs text-center hover:bg-emerald-900 transition">Try On</button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {hasSearched && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white dark:bg-zinc-800">
-          <div className="max-w-4xl mx-auto relative">
-            <input type="text" value={query} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} onChange={(e) => setQuery(e.target.value)} placeholder="Search for a product..." className="w-full pl-6 pr-12 py-3 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 text-black dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
-            <button onClick={handleSearch} className="absolute right-5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-emerald-400 transition"><MagnifyingGlassIcon className="w-5 h-5" /></button>
-          </div>
-        </div>
-      )}
-
-      {/* TRY-ON MODAL */}
-      {showTryOn && selectedItem && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex justify-center items-center">
-          <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg max-w-3xl w-full relative shadow-xl">
-            <button onClick={() => setShowTryOn(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-red-400">
-              <XMarkIcon className="w-6 h-6" />
-            </button>
-            <h2 className="text-xl font-bold mb-4 text-center">Virtual Clothes Try-On</h2>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Model Upload */}
-              <div>
-                <label className="block font-semibold mb-2">Upload Model Photo</label>
-                <div className="border-2 border-dashed p-4 rounded-lg relative text-center dark:border-zinc-600">
-                  {modelImage ? (
-                    <img src={modelImage} alt="model" className="w-full h-48 object-contain mx-auto" />
-                  ) : (
-                    <p className="text-sm text-zinc-400">Click to upload model image</p>
-                  )}
-                  <input type="file" accept="image/*" onChange={handleModelUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
-                </div>
-              </div>
-
-              {/* Garment Preview */}
-              <div>
-                <label className="block font-semibold mb-2">Garment Preview</label>
-                <div className="border p-4 rounded-lg text-center dark:border-zinc-600">
-                  <img src={selectedItem.image} alt="garment" className="w-full h-48 object-contain mx-auto" />
-                  <p className="text-sm mt-2">{selectedItem.title}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 text-center">
-              <button className="bg-emerald-500 hover:bg-emerald-600 px-6 py-2 text-white rounded-full">Generate Try-On</button>
-            </div>
-          </div>
-        </div>
-      )}
+                 </div>
+               );
+       })}
     </div>
-  );
+  </div>
+)}
+
+{hasSearched && (
+  <div className="fixed bottom-0 left-0 right-0 p-4 bg-white dark:bg-zinc-800">
+    <div className="max-w-4xl mx-auto relative">
+      <input type="text" value={query} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} onChange={(e) => setQuery(e.target.value)} placeholder="Search for a product..." className="w-full pl-6 pr-12 py-3 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 text-black dark:text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition" />
+      <button onClick={handleSearch} className="absolute right-5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-emerald-400 transition"><MagnifyingGlassIcon className="w-5 h-5" /></button>
+    </div>
+  </div>
+)}
+
+{/* TRY-ON MODAL */}
+{showTryOn && selectedItem && (
+  <div className="fixed inset-0 z-50 bg-black/50 flex justify-center items-center">
+    <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg max-w-3xl w-full relative shadow-xl">
+      <button onClick={() => setShowTryOn(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-red-400">
+        <XMarkIcon className="w-6 h-6" />
+      </button>
+      <h2 className="text-xl font-bold mb-4 text-center">Virtual Clothes Try-On</h2>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Model Upload */}
+        <div>
+          <label className="block font-semibold mb-2">Upload Model Photo</label>
+          <div className="border-2 border-dashed p-4 rounded-lg relative text-center dark:border-zinc-600">
+            {modelImage ? (
+              <img src={modelImage} alt="model" className="w-full h-48 object-contain mx-auto" />
+            ) : (
+              <p className="text-sm text-zinc-400">Click to upload model image</p>
+            )}
+            <input type="file" accept="image/*" onChange={handleModelUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+          </div>
+        </div>
+
+        {/* Garment Preview */}
+        <div>
+          <label className="block font-semibold mb-2">Garment Preview</label>
+          <div className="border p-4 rounded-lg text-center dark:border-zinc-600">
+            <img src={selectedItem.image} alt="garment" className="w-full h-48 object-contain mx-auto" />
+            <p className="text-sm mt-2">{selectedItem.title}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 text-center">
+        <button className="bg-emerald-500 hover:bg-emerald-600 px-6 py-2 text-white rounded-full">Generate Try-On</button>
+      </div>
+    </div>
+  </div>
+)}
+</div>
+);
 }
 
 export default App;
