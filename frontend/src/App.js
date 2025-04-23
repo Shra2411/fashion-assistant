@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from "react-router-dom";
 import {
   MagnifyingGlassIcon, HeartIcon, MoonIcon,
   SunIcon, XMarkIcon
@@ -11,7 +12,10 @@ const Spinner = () => (
   </div>
 );
 
+
+
 const App = () => {
+  const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('user'));
   const [userDetails, setUserDetails] = useState(() => {
     const savedUser = localStorage.getItem('user');
@@ -140,7 +144,7 @@ const App = () => {
           {isLoggedIn ? (
             <button onClick={handleLogout} className="bg-emerald-500 px-4 py-2 rounded-full text-white hover:scale-105 transition-transform">Logout</button>
           ) : (
-            <button onClick={() => setIsLoggedIn(true)} className="bg-emerald-500 px-4 py-2 rounded-full text-white hover:scale-105 transition-transform">Login</button>
+            <button onClick={() => navigate('/login')} className="bg-emerald-500 px-4 py-2 rounded-full text-white hover:scale-105 transition-transform">Login</button>
           )}
         </div>
       </nav>
@@ -150,12 +154,7 @@ const App = () => {
         <div className="flex flex-col items-center justify-center flex-1 px-4 mt-10 text-center">
           <h2 className="text-4xl font-extrabold tracking-tight mb-4">Welcome, {userDetails?.email}</h2>
           {/* Main content goes here */}
-        </div>
-      ) : (
-        <Login onLogin={handleLogin} />
-      )}
-
-      {!hasSearched && (
+          {!hasSearched && (
         <div className="flex flex-col items-center justify-center flex-1 px-4 mt-10 text-center">
           <div className="mb-10">
             <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">Find Your Fit</h2>
@@ -186,11 +185,7 @@ const App = () => {
           </div>
         </div>
       )}
-
-      
-
       {loading && <Spinner />}
-
       {results.length > 0 && (
         <div className="max-w-7xl mx-auto px-6 mt-8">
           <h2 className="text-2xl font-bold mb-4">Search Results for <span className="text-emerald-400">"{query.charAt(0).toUpperCase() + query.slice(1)}"</span></h2>
@@ -271,6 +266,18 @@ const App = () => {
     </div>
   </div>
 )}
+        </div>
+      ) : (
+        <Login onLogin={handleLogin} />
+      )}
+
+      
+
+      
+
+    
+
+
 </div>
 );
 }
