@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@fal-ai/client": "^1.4.0",
     "@heroicons/react": "^2.2.0",
     "axios": "^1.8.4",
     "react": "^18.2.0",
