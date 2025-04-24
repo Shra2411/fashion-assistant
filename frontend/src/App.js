@@ -5,6 +5,7 @@ import {
   SunIcon, XMarkIcon
 } from '@heroicons/react/24/solid';
 import Login from './Login';
+import TryOnModal from './components/TryOnModal';
 
 const Spinner = () => (
   <div className="flex justify-center items-center py-10">
@@ -151,8 +152,8 @@ const App = () => {
 
       {/* Conditional rendering for login or main content */}
       {isLoggedIn ? (
-        <div className="flex flex-col items-center justify-center flex-1 px-4 mt-10 text-center">
-          <h2 className="text-4xl font-extrabold tracking-tight mb-4">Welcome, {userDetails?.email}</h2>
+        <div className="">
+          <h2 className="text-4xl text-center mt-6 font-extrabold tracking-tight mb-4">Welcome, {userDetails?.email} !</h2>
           {/* Main content goes here */}
           {!hasSearched && (
         <div className="flex flex-col items-center justify-center flex-1 px-4 mt-10 text-center">
@@ -229,55 +230,15 @@ const App = () => {
 
 {/* TRY-ON MODAL */}
 {showTryOn && selectedItem && (
-  <div className="fixed inset-0 z-50 bg-black/50 flex justify-center items-center">
-    <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg max-w-3xl w-full relative shadow-xl">
-      <button onClick={() => setShowTryOn(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-red-400">
-        <XMarkIcon className="w-6 h-6" />
-      </button>
-      <h2 className="text-xl font-bold mb-4 text-center">Virtual Clothes Try-On</h2>
-
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Model Upload */}
-        <div>
-          <label className="block font-semibold mb-2">Upload Model Photo</label>
-          <div className="border-2 border-dashed p-4 rounded-lg relative text-center dark:border-zinc-600">
-            {modelImage ? (
-              <img src={modelImage} alt="model" className="w-full h-48 object-contain mx-auto" />
-            ) : (
-              <p className="text-sm text-zinc-400">Click to upload model image</p>
-            )}
-            <input type="file" accept="image/*" onChange={handleModelUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
-          </div>
-        </div>
-
-        {/* Garment Preview */}
-        <div>
-          <label className="block font-semibold mb-2">Garment Preview</label>
-          <div className="border p-4 rounded-lg text-center dark:border-zinc-600">
-            <img src={selectedItem.image} alt="garment" className="w-full h-48 object-contain mx-auto" />
-            <p className="text-sm mt-2">{selectedItem.title}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-6 text-center">
-        <button className="bg-emerald-500 hover:bg-emerald-600 px-6 py-2 text-white rounded-full">Generate Try-On</button>
-      </div>
-    </div>
-  </div>
+  <TryOnModal
+    onClose={() => setShowTryOn(false)}
+    selectedItem={selectedItem}
+  />
 )}
         </div>
       ) : (
         <Login onLogin={handleLogin} />
       )}
-
-      
-
-      
-
-    
-
-
 </div>
 );
 }
