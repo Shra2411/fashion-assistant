@@ -6,6 +6,7 @@ import {
 } from '@heroicons/react/24/solid';
 import Login from './Login';
 import TryOnModal from './components/TryOnModal';
+import { signInWithGoogle, loginWithEmail, registerWithEmail, logout, onAuthStateChangedListener } from './auth';
 
 const Spinner = () => (
   <div className="flex justify-center items-center py-10">
@@ -17,11 +18,8 @@ const Spinner = () => (
 
 const App = () => {
   const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('user'));
-  const [userDetails, setUserDetails] = useState(() => {
-    const savedUser = localStorage.getItem('user');
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userDetails, setUserDetails] = useState(null);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
@@ -114,18 +112,63 @@ const App = () => {
     }
   };
 
-  const handleLogin = (email, password) => {
-    const user = { email, password }; // Placeholder user data
-    setUserDetails(user);
+  const handleLoginSuccess = (email, password) => {
+    handleLogin(email, password); // This will save the user details in localStorage
     setIsLoggedIn(true);
-    localStorage.setItem('user', JSON.stringify(user)); // Save user details to localStorage
+    setUserDetails({ email, password }); // Set user details after successful login
+    navigate('/dashboard'); // Navigate to the dashboard after login
   };
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setUserDetails(null);
-    localStorage.removeItem('user'); // Clear user data from localStorage
-  };
+    // Firebase authentication state change listener
+    useEffect(() => {
+      const unsubscribe = onAuthStateChangedListener((user) => {
+        if (user) {
+          setUserDetails(user);  // Set the user details
+          setIsLoggedIn(true);  // Mark the user as logged in
+        } else {
+          setIsLoggedIn(false);  // If no user, mark as logged out
+        }
+      });
+  
+      return () => unsubscribe();  // Clean up listener on unmount
+    }, []);
+  
+    // Handle email/password login
+    const handleLogin = async (email, password) => {
+      try {
+        await loginWithEmail(email, password);
+        navigate('/dashboard'); // Redirect to dashboard after successful login
+      } catch (error) {
+        console.error("Login error:", error.message);
+        alert('Login failed. Please check your credentials.');
+      }
+    };
+  
+    // Handle Google login
+    const handleGoogleLogin = async () => {
+      try {
+        await signInWithGoogle();
+        navigate('/dashboard'); // Redirect after Google login
+      } catch (error) {
+        console.error("Google login error:", error.message);
+        alert('Google login failed. Please try again.');
+      }
+    };
+  
+    // Handle logout
+    const handleLogout = () => {
+      logout();  // Call Firebase logout
+      setUserDetails(null);  // Clear user details
+      setIsLoggedIn(false);  // Mark user as logged out
+      navigate('/login');  // Redirect to login page
+    };
+
+  useEffect(() => {
+    // Check if user is logged in and update accordingly
+    if (isLoggedIn) {
+      navigate('/dashboard'); // Make sure to redirect to dashboard if logged in
+    }
+  }, [isLoggedIn, navigate]);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
@@ -231,13 +274,14 @@ const App = () => {
 {/* TRY-ON MODAL */}
 {showTryOn && selectedItem && (
   <TryOnModal
-    onClose={() => setShowTryOn(false)}
-    selectedItem={selectedItem}
+  showTryOn={showTryOn}
+  setShowTryOn={setShowTryOn}
+  selectedItem={selectedItem}
   />
 )}
         </div>
       ) : (
-        <Login onLogin={handleLogin} />
+        <Login onLogin={handleLoginSuccess} />
       )}
 </div>
 );
