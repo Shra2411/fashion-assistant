@@ -25,6 +25,7 @@ const MainPage = () => {
   const [results, setResults] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isTrending, setIsTrending] = useState(false);
   const [favorites, setFavorites] = useState(() => {
     const savedFavorites = localStorage.getItem('favorites');
     return savedFavorites ? JSON.parse(savedFavorites) : {};
@@ -40,6 +41,7 @@ const MainPage = () => {
   const [modelImage, setModelImage] = useState(null);
 
   const suggestions = ['oversized tshirt', 'printed tshirt', 'Shoes', 'cargo pants for men'];
+  const trendingSearches = ["Trending MensWear"];
 
   const handleSearch = async (searchQuery) => {
     const finalQuery = (searchQuery || query || '').toString();
@@ -65,6 +67,13 @@ const MainPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+const handleTrendingClick = () => {
+    const randomTrendingSearch = trendingSearches[Math.floor(Math.random() * trendingSearches.length)];
+    setQuery(randomTrendingSearch);
+    // setShowInput(false); // Hide the input box
+    handleSearch(); // Trigger search immediately after setting the query
   };
 
   const handleSuggestionClick = (tag) => {
@@ -182,8 +191,8 @@ const MainPage = () => {
         <h1 className="text-2xl font-bold tracking-wide">Clothx</h1>
         <div className="flex items-center space-x-4 text-sm">
           <button onClick={() => navigate('/tryon')} className="hover:text-emerald-400 transition">TryOn</button>
-          <a href="#" className="hover:text-emerald-400 transition">Favorites</a>
-          <a href="#" className="hover:text-emerald-400 transition">Trending</a>
+          <a href="/" className="hover:text-emerald-400 transition">Browse</a>
+          <button href="#" onClick={handleTrendingClick} className="hover:text-emerald-400 transition">Trending</button>
           <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-emerald-100 dark:hover:bg-zinc-700 transition" title="Toggle Theme">
             {theme === 'dark' ? <SunIcon className="w-5 h-5 text-yellow-300" /> : <MoonIcon className="w-5 h-5 text-zinc-800" />}
           </button>

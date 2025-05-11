@@ -11,7 +11,7 @@ const TryOnModal = ({ showTryOn, setShowTryOn, selectedItem }) => {
     const file = e.target.files[0];
     if (file) {
       const imageUrl = URL.createObjectURL(file);
-      setModelImage(imageUrl);
+      setModelImage(imageUrl); // Set the model image URL
     }
   };
 
@@ -20,8 +20,9 @@ const TryOnModal = ({ showTryOn, setShowTryOn, selectedItem }) => {
 
     setLoading(true);
     try {
+      // Pass the model image from user and garment image from selectedItem
       const result = await generateTryOn(modelImage, selectedItem.image);
-      setTryOnResult(result);
+      setTryOnResult(result); // Store the result for displaying
     } catch (error) {
       console.error('Try-on failed:', error);
     } finally {
@@ -62,7 +63,7 @@ const TryOnModal = ({ showTryOn, setShowTryOn, selectedItem }) => {
             </div>
           </div>
 
-          {/* Garment Preview */}
+          {/* Garment Preview (comes from selectedItem.image) */}
           <div>
             <label className="block font-semibold mb-2">Garment Preview</label>
             <div className="border p-4 rounded-lg text-center dark:border-zinc-600">
