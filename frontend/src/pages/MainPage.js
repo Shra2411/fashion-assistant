@@ -8,6 +8,7 @@ import Login from './Login';
 import Home from './Home';
 import TryOnModal from '../components/TryOnModal';
 import { signInWithGoogle, loginWithEmail, registerWithEmail, logout, onAuthStateChangedListener } from '../auth';
+import Skeleton from 'react-loading-skeleton'; // Import the Skeleton component
 
 const Spinner = () => (
   <div className="flex justify-center items-center py-10">
@@ -191,7 +192,7 @@ const handleTrendingClick = () => {
         <h1 className="text-2xl font-bold tracking-wide">Clothx</h1>
         <div className="flex items-center space-x-4 text-sm">
           <button onClick={() => navigate('/tryon')} className="hover:text-emerald-400 transition">TryOn</button>
-          <a href="/" className="hover:text-emerald-400 transition">Browse</a>
+          <a href="/dashboard" className="hover:text-emerald-400 transition">Browse</a>
           <button href="#" onClick={handleTrendingClick} className="hover:text-emerald-400 transition">Trending</button>
           <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-emerald-100 dark:hover:bg-zinc-700 transition" title="Toggle Theme">
             {theme === 'dark' ? <SunIcon className="w-5 h-5 text-yellow-300" /> : <MoonIcon className="w-5 h-5 text-zinc-800" />}
@@ -240,7 +241,42 @@ const handleTrendingClick = () => {
           </div>
         </div>
       )}
-      {loading && <Spinner />}
+
+
+      {loading && (
+        <div className="max-w-7xl mx-auto px-6 mt-8">
+          <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {/* Skeleton Loaders for Product Cards */}
+            {Array(10).fill().map((_, index) => (
+              <div key={index} className="bg-white dark:bg-zinc-800/80 rounded-xl shadow-md overflow-hidden flex flex-col">
+                {/* Skeleton Loader for Image */}
+                <div className="w-full" style={{ aspectRatio: '16/9' }}>
+                  <Skeleton height="100%" width="100%" containerClassName="bg-zinc-800" />
+                </div>
+
+                {/* Skeleton Loader for Title */}
+                <div className="p-4 flex flex-col flex-grow space-y-2">
+                  <Skeleton height={20} width="80%" containerClassName="bg-zinc-800 rounded-full" />
+                  
+                  {/* Skeleton Loader for Price */}
+                  <Skeleton height={15} width="60%" containerClassName="bg-zinc-800 rounded-full" />
+                  
+                  {/* Skeleton Loader for Description */}
+                  <Skeleton height={12} width="70%" containerClassName="bg-zinc-800 rounded-full" />
+                  
+                  {/* Skeleton Loader for Action Buttons */}
+                  <div className="flex gap-2 mt-2">
+                    <Skeleton height={36} width="100px" containerClassName="bg-zinc-900" />
+                    <Skeleton height={36} width="100px" containerClassName="bg-zinc-900" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+
       {results.length > 0 && (
         <div className="max-w-7xl mx-auto px-6 mt-8">
           <h2 className="text-2xl font-bold mb-4">Search Results for <span className="text-emerald-400">"{query.charAt(0).toUpperCase() + query.slice(1)}"</span></h2>
