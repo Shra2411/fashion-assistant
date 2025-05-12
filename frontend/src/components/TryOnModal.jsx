@@ -1,55 +1,92 @@
-// src/components/TryOnModal.jsx
 import React, { useState } from 'react';
-import { XMarkIcon } from '@heroicons/react/24/solid';
 import { generateTryOn } from '../api/falTryOn';
+import { XMarkIcon } from '@heroicons/react/24/solid';
 
-const TryOnModal = ({ onClose, selectedItem }) => {
+const TryOnModal = ({ showTryOn, setShowTryOn, selectedItem }) => {
   const [modelImage, setModelImage] = useState(null);
-  const [outputImage, setOutputImage] = useState(null);
+  const [tryOnResult, setTryOnResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const handleModelUpload = (e) => {
     const file = e.target.files[0];
-    if (file) setModelImage(file);
+    if (file) {
+      const imageUrl = URL.createObjectURL(file);
+      setModelImage(imageUrl); // Set the model image URL
+    }
   };
 
   const handleTryOn = async () => {
-    if (!modelImage || !selectedItem.image) return;
+    if (!modelImage || !selectedItem?.image) return;
+
     setLoading(true);
     try {
-      const garmentBlob = await fetch(selectedItem.image).then(res => res.blob());
-      const garmentFile = new File([garmentBlob], 'garment.jpg', { type: 'image/jpeg' });
-      const resultUrl = await generateTryOn(modelImage, garmentFile);
-      setOutputImage(resultUrl);
-    } catch (err) {
-      alert('Try-On failed: ' + err.message);
+      // Pass the model image from user and garment image from selectedItem
+      const result = await generateTryOn(modelImage, selectedItem.image);
+      setTryOnResult(result); // Store the result for displaying
+    } catch (error) {
+      console.error('Try-on failed:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  if (!showTryOn || !selectedItem) return null;
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
-      <div className="bg-white dark:bg-zinc-900 rounded-lg p-6 w-full max-w-2xl relative">
-        <button onClick={onClose} className="absolute top-3 right-3 text-red-500 hover:text-red-700">
+    <div className="fixed inset-0 z-50 bg-black/50 flex justify-center items-center">
+      <div className="bg-white dark:bg-zinc-900 p-6 rounded-lg max-w-3xl w-full relative shadow-xl">
+        <button
+          onClick={() => setShowTryOn(false)}
+          className="absolute top-4 right-4 text-zinc-500 hover:text-red-400"
+        >
           <XMarkIcon className="w-6 h-6" />
         </button>
-        <h2 className="text-xl font-bold text-center mb-4">Virtual Try-On</h2>
 
-        <input type="file" accept="image/*" onChange={handleModelUpload} />
-        <div className="mt-4 flex justify-center">
+        <h2 className="text-xl font-bold mb-4 text-center">Virtual Clothes Try-On</h2>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Model Upload */}
+          <div>
+            <label className="block font-semibold mb-2">Upload Model Photo</label>
+            <div className="border-2 border-dashed p-4 rounded-lg relative text-center dark:border-zinc-600">
+              {modelImage ? (
+                <img src={modelImage} alt="model" className="w-full h-48 object-contain mx-auto" />
+              ) : (
+                <p className="text-sm text-zinc-400">Click to upload model image</p>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleModelUpload}
+                className="absolute inset-0 opacity-0 cursor-pointer"
+              />
+            </div>
+          </div>
+
+          {/* Garment Preview (comes from selectedItem.image) */}
+          <div>
+            <label className="block font-semibold mb-2">Garment Preview</label>
+            <div className="border p-4 rounded-lg text-center dark:border-zinc-600">
+              <img src={selectedItem.image} alt="garment" className="w-full h-48 object-contain mx-auto" />
+              <p className="text-sm mt-2">{selectedItem.title}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 text-center">
           <button
-            disabled={loading}
             onClick={handleTryOn}
-            className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-full"
+            className="bg-emerald-500 hover:bg-emerald-600 px-6 py-2 text-white rounded-full"
+            disabled={loading}
           >
             {loading ? 'Generating...' : 'Generate Try-On'}
           </button>
         </div>
 
-        {outputImage && (
-          <div className="mt-6">
-            <img src={outputImage} alt="Try-On Result" className="w-full max-h-[500px] object-contain rounded-lg" />
+        {tryOnResult && (
+          <div className="mt-6 text-center">
+            <h3 className="font-semibold mb-2">Result</h3>
+            <img src={tryOnResult.output_image} alt="Try-On Result" className="w-full h-80 object-contain mx-auto" />
           </div>
         )}
       </div>
