@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import {
   MagnifyingGlassIcon, HeartIcon, MoonIcon,
   SunIcon, XMarkIcon
@@ -9,6 +9,25 @@ import Home from './Home';
 import TryOnModal from '../components/TryOnModal';
 import { signInWithGoogle, loginWithEmail, registerWithEmail, logout, onAuthStateChangedListener } from '../auth';
 import Skeleton from 'react-loading-skeleton'; // Import the Skeleton component
+import { auth, db } from "../firebase";
+import { 
+  doc, 
+  setDoc, 
+  deleteDoc, 
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs
+} from "firebase/firestore";
+
+const createSafeId = (userId, url) => {
+  const base64 = btoa(encodeURIComponent(url).slice(0, 1000))
+    .replace(/\//g, '_')
+    .replace(/\+/g, '-')
+    .replace(/=/g, '');
+  return `${userId}_${base64}`;
+};
 
 const Spinner = () => (
   <div className="flex justify-center items-center py-10">
@@ -27,10 +46,7 @@ const MainPage = () => {
   const [hasSearched, setHasSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isTrending, setIsTrending] = useState(false);
-  const [favorites, setFavorites] = useState(() => {
-    const savedFavorites = localStorage.getItem('favorites');
-    return savedFavorites ? JSON.parse(savedFavorites) : {};
-  });
+  // const [favorites, setFavorites] = useState({});
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
   const [searchHistory, setSearchHistory] = useState(() => {
     const saved = localStorage.getItem('searchHistory');
@@ -40,6 +56,8 @@ const MainPage = () => {
   const [showTryOn, setShowTryOn] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [modelImage, setModelImage] = useState(null);
+
+  const user = auth.currentUser;
 
   const suggestions = ['oversized tshirt', 'printed tshirt', 'Shoes', 'cargo pants for men'];
   const trendingSearches = ["Trending MensWear"];
@@ -61,6 +79,7 @@ const MainPage = () => {
     try {
       const response = await fetch(`http://localhost:5000/search?query=${finalQuery}`);
       const data = await response.json();
+      // console.log(data.results);
       setResults(data.results || []);
     } catch (err) {
       console.error('Failed to fetch data:', err);
@@ -100,16 +119,70 @@ const handleTrendingClick = () => {
     localStorage.setItem('searchHistory', JSON.stringify(updatedHistory));
   };
 
-  const toggleFavorite = (index, item) => {
-    const updatedFavorites = { ...favorites };
-    if (updatedFavorites[index]) {
-      delete updatedFavorites[index];
-    } else {
-      updatedFavorites[index] = item;
+// State for favorites
+const [favorites, setFavorites] = useState({});
+
+// Fetch favorites when user changes
+useEffect(() => {
+  const fetchFavorites = async () => {
+    if (user) {
+      try {
+        const favoritesRef = collection(db, "favorites");
+        const q = query(favoritesRef, where("userId", "==", user.uid));
+        const querySnapshot = await getDocs(q);
+        
+        const newFavorites = {};
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          newFavorites[data.productId] = true;
+        });
+        
+        setFavorites(newFavorites);
+      } catch (error) {
+        console.error("Error fetching favorites:", error);
+      }
     }
-    setFavorites(updatedFavorites);
-    localStorage.setItem('favorites', JSON.stringify(updatedFavorites));
   };
+  
+  fetchFavorites();
+}, [user]);
+
+// Toggle favorite function
+const toggleFavorite = async (item) => {
+  if (!user) {
+    alert("Please log in to save favorites!");
+    return;
+  }
+
+  try {
+    const docId = createSafeId(user.uid, item.link);
+    const favRef = doc(db, "favorites", docId);
+
+    if (favorites[item.link]) {
+      // Remove from favorites
+      await deleteDoc(favRef);
+      setFavorites(prev => ({ ...prev, [item.link]: false }));
+    } else {
+      // Add to favorites
+      await setDoc(favRef, {
+        userId: user.uid,
+        productId: item.link,
+        productData: {
+          image: item.image,
+          link: item.link,
+          price: item.price,
+          site: item.site,
+          title: item.title,
+        },
+        timestamp: new Date(),
+      });
+      setFavorites(prev => ({ ...prev, [item.link]: true }));
+    }
+  } catch (error) {
+    console.error("Error toggling favorite:", error);
+    alert("Failed to update favorites. Please try again.");
+  }
+};
 
   const handleTryOnClick = (item) => {
     setSelectedItem(item);
@@ -194,6 +267,7 @@ const handleTrendingClick = () => {
           <button onClick={() => navigate('/tryon')} className="hover:text-emerald-400 transition">TryOn</button>
           <a href="/dashboard" className="hover:text-emerald-400 transition">Browse</a>
           <button href="#" onClick={handleTrendingClick} className="hover:text-emerald-400 transition">Trending</button>
+          {user && <Link to="/favorites">❤️ Favorites</Link>}
           <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-emerald-100 dark:hover:bg-zinc-700 transition" title="Toggle Theme">
             {theme === 'dark' ? <SunIcon className="w-5 h-5 text-yellow-300" /> : <MoonIcon className="w-5 h-5 text-zinc-800" />}
           </button>
@@ -285,9 +359,13 @@ const handleTrendingClick = () => {
                 const isFavorited = favorites[index];
                 return (
                   <div key={index} className="bg-white dark:bg-zinc-800/80 backdrop-blur-md rounded-xl shadow-md overflow-hidden flex flex-col hover:shadow-lg transition-shadow border border-zinc-200 dark:border-zinc-700 relative">
-                    <button onClick={() => toggleFavorite(index, item)} className="absolute top-4 right-4 z-10 bg-zinc-900/70 hover:bg-zinc-800 p-1.5 rounded-full transition" title="Add to favorites">
-                      <HeartIcon className={`w-5 h-5 ${isFavorited ? 'text-rose-500' : 'text-zinc-400'} transition`} />
-                    </button>
+                    <button 
+  onClick={() => toggleFavorite(item)} 
+  className="absolute top-4 right-4 z-10 bg-zinc-900/70 hover:bg-zinc-800 p-1.5 rounded-full transition" 
+  title={favorites[item.link] ? "Remove from favorites" : "Add to favorites"}
+>
+  <HeartIcon className={`w-5 h-5 ${favorites[item.link] ? 'text-rose-500' : 'text-zinc-400'} transition`} />
+</button>
                     <a href={item.link} target="_blank" rel="noopener noreferrer" className="group relative">
                       <img src={item.image} alt={item.title} className="h-56 w-full object-contain bg-white p-3 transition-transform group-hover:scale-105" />
                     </a>
