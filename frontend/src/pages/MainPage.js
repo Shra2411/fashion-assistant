@@ -127,25 +127,25 @@ useEffect(() => {
   const fetchFavorites = async () => {
     if (user) {
       try {
-        const favoritesRef = collection(db, "favorites");
-        const q = query(favoritesRef, where("userId", "==", user.uid));
+        const q = query(
+          collection(db, "favorites"),
+          where("userId", "==", user.uid)
+        );
         const querySnapshot = await getDocs(q);
-        
-        const newFavorites = {};
+        const favs = {};
         querySnapshot.forEach((doc) => {
           const data = doc.data();
-          newFavorites[data.productId] = true;
+          favs[data.productId] = true;
         });
-        
-        setFavorites(newFavorites);
+        setFavorites(favs);
       } catch (error) {
         console.error("Error fetching favorites:", error);
       }
     }
   };
-  
   fetchFavorites();
 }, [user]);
+
 
 // Toggle favorite function
 const toggleFavorite = async (item) => {

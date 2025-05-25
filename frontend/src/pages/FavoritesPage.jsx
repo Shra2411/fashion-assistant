@@ -4,6 +4,14 @@ import { collection, query, where, getDocs, deleteDoc, doc } from "firebase/fire
 import { Link } from "react-router-dom";
 import { HeartIcon, XMarkIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
 
+// Utility function to create consistent document IDs
+const createFavoriteId = (userId, productLink) => {
+  return `${userId}_${btoa(encodeURIComponent(productLink).slice(0, 1000))
+    .replace(/\//g, '_')
+    .replace(/\+/g, '-')
+    .replace(/=/g, '')}`;
+};
+
 function FavoritesPage() {
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,10 +43,11 @@ function FavoritesPage() {
   }, [user]);
 
   // Remove from favorites
-  const removeFavorite = async (productId) => {
+  const removeFavorite = async (productLink) => {
     try {
-      await deleteDoc(doc(db, "favorites", `${user.uid}_${productId}`));
-      setFavorites(favorites.filter((item) => item.link !== productId));
+      const docId = createFavoriteId(user.uid, productLink);
+      await deleteDoc(doc(db, "favorites", docId));
+      setFavorites(favorites.filter((item) => item.link !== productLink));
     } catch (error) {
       console.error("Error removing favorite:", error);
     }
