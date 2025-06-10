@@ -28,7 +28,7 @@ import { fal } from "@fal-ai/client";
 
 // Initialize the fal client with your API key
 fal.config({
-    credentials: "e538dd3f-6e32-4a0f-a568-8b6a15700096:d9afbabbf6a0bb90904bf042d59c55ea",
+    credentials: "58b2b6a4-47cb-4102-abaa-e1cfca5f915d:a86c4ecc3fc60238ca86952bc3893d88",
 });
 
 export async function generateTryOn(modelImageUrl, garmentImageUrl, category = "tops") {
