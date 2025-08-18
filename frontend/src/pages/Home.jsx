@@ -6,7 +6,7 @@ import TryOnResult from '../components/TryOnResult';
 // Configure FAL.AI client
 fal.config({
 //   credentials: import.meta.env.VITE_FAL_AI_KEY,
-    credentials: "e538dd3f-6e32-4a0f-a568-8b6a15700096:d9afbabbf6a0bb90904bf042d59c55ea",
+    credentials: "b710df08-1851-4a12-aee5-d9c30f07cb67:37ee3a04861528663bffbb4b6d334bd8",
 });
 
 export default function Home() {
@@ -55,88 +55,81 @@ export default function Home() {
   };
 
   const handleTryOn = async () => {
-    if (!modelImage || !garmentImage) {
-      setError('Please upload both a model image and a garment image');
-      return;
+  if (!modelImage || !garmentImage) {
+    setError('Please upload both a model image and a garment image');
+    return;
+  }
+
+  setIsLoading(true);
+  setError(null);
+  setResultUrls([]);
+  setProgress('Starting try-on process...');
+
+  try {
+    // Upload model image
+    setProgress('Uploading model image...');
+    const uploadedModelUrl = await uploadImageToFal(modelImage);
+
+    // Upload garment image
+    setProgress('Uploading garment image...');
+    const uploadedGarmentUrl = await uploadImageToFal(garmentImage);
+
+    // Submit try-on request
+    setProgress('Submitting try-on request...');
+    const result = await fal.subscribe("fal-ai/fashn/tryon/v1.5", {
+      input: {
+        model_image: uploadedModelUrl,
+        garment_image: uploadedGarmentUrl,
+        category: category || "auto",
+        mode: "balanced", // or "performance" or "quality"
+        garment_photo_type: advancedOptions.garmentPhotoType || "auto",
+        moderation_level: advancedOptions.nsfwFilter ? "permissive" : "none",
+        seed: advancedOptions.seed || 42,
+        num_samples: advancedOptions.numSamples || 1,
+        segmentation_free: true,
+        output_format: "png"
+      },
+      logs: true,
+      onQueueUpdate: (update) => {
+        if (update.status === "IN_PROGRESS") {
+          const messages = update.logs.map(log => log.message);
+          setProgress(messages.join('\n'));
+        }
+      }
+    });
+
+    console.log('API Response:', result);
+
+    if (!result || result.error) {
+      throw new Error(result?.error?.message || 'API returned an error');
     }
 
-    setIsLoading(true);
-    setError(null);
-    setResultUrls([]);
-    setProgress('Starting try-on process...');
-
-    try {
-      // Step 1: Upload model image
-      setProgress('Uploading model image...');
-      const modelImageUrl = await uploadImageToFal(modelImage);
-      
-      // Step 2: Upload garment image
-      setProgress('Uploading garment image...');
-      const garmentImageUrl = await uploadImageToFal(garmentImage);
-
-      // Step 3: Submit try-on request
-      setProgress('Submitting try-on request...');
-      const result = await fal.subscribe("fashn/tryon", {
-        input: {
-          model_image: modelImageUrl,
-          garment_image: garmentImageUrl,
-          category: category,
-          garment_photo_type: advancedOptions.garmentPhotoType,
-          nsfw_filter: advancedOptions.nsfwFilter,
-          cover_feet: advancedOptions.coverFeet,
-          adjust_hands: advancedOptions.adjustHands,
-          restore_background: advancedOptions.restoreBackground,
-          restore_clothes: advancedOptions.restoreClothes,
-          long_top: advancedOptions.longTop,
-          guidance_scale: advancedOptions.guidanceScale,
-          timesteps: advancedOptions.timesteps,
-          seed: advancedOptions.seed,
-          num_samples: advancedOptions.numSamples,
-        },
-        logs: true,
-        onQueueUpdate: (update) => {
-          if (update.status === "IN_PROGRESS") {
-            const messages = update.logs.map(log => log.message);
-            setProgress(messages.join('\n'));
-          }
-        },
-      });
-
-      console.log('API Response:', result);
-
-      if (!result) {
-        throw new Error('No response received from API');
-      }
-
-      if (result.error) {
-        throw new Error(result.error.message || 'API returned an error');
-      }
-
-      if (!result.data.images || result.data.images.length === 0) {
-        throw new Error('API completed but returned no images');
-      }
-
-      setResultUrls(result.data.images.map(img => img.url));
-      setProgress('Try-on completed successfully!');
-    } catch (err) {
-      console.error('Full error details:', err);
-      
-      let errorMessage = 'Failed to process images. Please try again.';
-      if (err.message.includes('NSFW')) {
-        errorMessage = 'Content flagged as inappropriate. Please try different images.';
-      } else if (err.message.includes('size') || err.message.includes('dimension')) {
-        errorMessage = 'Image size or dimensions not supported. Please try different images.';
-      } else if (err.response?.status === 429) {
-        errorMessage = 'Too many requests. Please wait and try again later.';
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
+    if (!result.data.images || result.data.images.length === 0) {
+      throw new Error('API completed but returned no images');
     }
-  };
+
+    setResultUrls(result.data.images.map(img => img.url));
+    setProgress('Try-on completed successfully!');
+  } catch (err) {
+    console.error('Full error details:', err);
+
+    let errorMessage = 'Failed to process images. Please try again.';
+    if (err.message.includes('NSFW')) {
+      errorMessage = 'Content flagged as inappropriate. Please try different images.';
+    } else if (err.message.includes('size') || err.message.includes('dimension')) {
+      errorMessage = 'Image size or dimensions not supported. Please try different images.';
+    } else if (err.response?.status === 429) {
+      errorMessage = 'Too many requests. Please wait and try again later.';
+    } else if (err.message) {
+      errorMessage = err.message;
+    }
+
+    setError(errorMessage);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   const toggleAdvancedOptions = () => {
     setAdvancedOptions(prev => ({

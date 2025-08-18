@@ -8,7 +8,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
-import sqlite3
 import datetime
 import requests
 
@@ -17,8 +16,7 @@ app.secret_key = 'abcdef12345!@#$%'
 CORS(app)
 
 
-DATABASE = 'Store.db'
-CHROME_PATH = "C:\\chromedriver\\chromedriver-win64\\chromedriver-win64\\chromedriver.exe"
+CHROME_PATH = "C:\\chromedriver-win64\\chromedriver.exe"
 
 # Headers
 headers = {
@@ -35,89 +33,34 @@ def get_exchange_rate():
     
 def create_driver():
     options = Options()
+    
+    # Basic browser options
     options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
+
+    # SSL / insecure content fix
     options.add_argument("--ignore-certificate-errors")
-    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+    options.add_argument("--ignore-ssl-errors")
+    options.add_argument("--allow-running-insecure-content")
+
+    # Anti-bot detection evasion
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36")
+
+    # Page load and JS rendering tolerance
+    options.page_load_strategy = 'eager'  # Load faster, may skip some JS-heavy elements
 
     service = Service(CHROME_PATH)
     driver = webdriver.Chrome(service=service, options=options)
-    driver.set_page_load_timeout(30)
+
+    # Set timeouts
+    driver.set_page_load_timeout(10)
+    driver.implicitly_wait(10)
+
     return driver
 
-# DB setup
-
-def get_db():
-    db = getattr(g, '_database', None)
-    if db is None:
-        db = g._database = sqlite3.connect(DATABASE)
-        db.row_factory = sqlite3.Row
-    return db
-
-@app.teardown_appcontext
-def close_connection(exception):
-    db = getattr(g, '_database', None)
-    if db is not None:
-        db.close()
-
-# Routes for account creation and login
-@app.route('/')
-def index():
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS users (
-                        id INTEGER PRIMARY KEY, 
-                        first_name TEXT, 
-                        last_name TEXT, 
-                        email TEXT, 
-                        password TEXT, 
-                        created_at DATETIME)''')
-    db.commit()
-    cursor.close()
-    return 'Backend Running'
-
-@app.route('/create_account', methods=['POST'])
-def create_user():
-    db = get_db()
-    data = request.form
-    first_name = data['first_name']
-    last_name = data['last_name']
-    email = data['email']
-    password = data['password']
-    confirm_password = data['confirm_password']
-
-    if password != confirm_password:
-        return jsonify({'status': 'error', 'message': 'Passwords do not match'}), 400
-
-    cursor = db.cursor()
-    cursor.execute('SELECT email FROM users WHERE email=?', (email,))
-    if cursor.fetchone():
-        return jsonify({'status': 'error', 'message': 'User already exists'}), 400
-
-    cursor.execute('INSERT INTO users (first_name, last_name, email, password, created_at) VALUES (?, ?, ?, ?, ?)',
-                   (first_name, last_name, email, password, datetime.datetime.now().strftime('%Y-%m-%d %H:%M')))
-    db.commit()
-    cursor.close()
-    return jsonify({'status': 'success', 'message': 'User created successfully'})
-
-@app.route('/login', methods=['POST'])
-def login():
-    db = get_db()
-    data = request.form
-    email = data['email']
-    password = data['password']
-
-    cursor = db.cursor()
-    cursor.execute('SELECT * FROM users WHERE email=? AND password=?', (email, password))
-    user = cursor.fetchone()
-    cursor.close()
-
-    if user:
-        return jsonify({'status': 'success', 'message': 'Login successful'})
-    else:
-        return jsonify({'status': 'error', 'message': 'Invalid credentials'}), 401
 
 def scrape_amazon(query):
     driver = create_driver()
@@ -136,7 +79,7 @@ def scrape_amazon(query):
     driver.quit()
 
     items = []
-    for result in soup.select(".s-result-item")[:20]:
+    for result in soup.select(".s-result-item")[:5]:
         title = result.select_one("h2 span")
         link = result.select_one("a.a-link-normal")
         image = result.select_one("img")
@@ -161,7 +104,7 @@ def scrape_ebay(query):
     soup = BeautifulSoup(r.text, "html.parser")
     items = []
 
-    for item in soup.select('.s-item')[2:22]:
+    for item in soup.select('.s-item')[2:7]:
         title_tag = item.select_one('.s-item__title')
         if not title_tag:
             continue
@@ -196,7 +139,7 @@ def scrape_ajio(query):
     driver.get(f"https://www.ajio.com/search/?text={query.replace(' ', '%20')}")
 
     try:
-        WebDriverWait(driver, 20).until(
+        WebDriverWait(driver, 40).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, ".item"))
         )
     except Exception as e:
@@ -211,7 +154,7 @@ def scrape_ajio(query):
     product_cards = soup.find_all("div", class_="item")
     print(f"AJIO found {len(product_cards)} product cards.")
 
-    for product in product_cards[:20]:
+    for product in product_cards[:5]:
         brand_tag = product.find("div", class_="brand")
         name_tag = product.find("div", class_="nameCls")
         price_tag = product.select_one("span.price strong")
@@ -243,6 +186,7 @@ def scrape_ajio(query):
 
     print(f"AJIO scraped {len(items)} items.")
     return items
+
 
 
 # ----------------- MAIN ROUTE -----------------
