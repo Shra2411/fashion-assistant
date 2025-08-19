@@ -16,7 +16,7 @@ app.secret_key = 'abcdef12345!@#$%'
 CORS(app)
 
 
-CHROME_PATH = "C:\\chromedriver-win64\\chromedriver.exe"
+CHROME_PATH = "D:\chromedriver-win64\chromedriver.exe"
 
 # Headers
 headers = {
