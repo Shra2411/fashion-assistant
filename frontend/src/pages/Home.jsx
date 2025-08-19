@@ -167,6 +167,7 @@ export default function Home() {
             )}
           </div>
           
+          
           <div>
             <h2 className="text-xl font-semibold mb-4">Upload Garment</h2>
             <p className="text-sm text-gray-500 mb-2">
